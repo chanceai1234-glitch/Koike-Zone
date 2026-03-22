@@ -1,0 +1,12 @@
+[project]
+name = "content-team"
+version = "0.1.0"
+description = "コンテンツ制作エージェントチーム - Claude Agent SDKを使った企画・執筆・編集・校正の自動化"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "claude-agent-sdk>=0.1.0",
+]
+
+[project.scripts]
+content-team = "content_team.main:main"
