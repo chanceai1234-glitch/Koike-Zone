@@ -1,100 +1,139 @@
 # Koike-Zone
 
-コンテンツ制作エージェントチーム - Claude Agent SDK を使った記事制作の自動化
+占いの科学的検証プロジェクト - Claude Agent SDK によるエージェントチーム
 
-## 概要
+## ミッション
 
-4つの専門エージェントがチームとして連携し、テーマを入力するだけで高品質な記事を自動生成します。
+世界中の占い手法を調査し、科学的根拠に基づいて分析。占いとの正しい付き合い方を啓発するコンテンツを制作し、さらに占いを実際に体験できるサイト/アプリを企画する。
+
+**占いそのものに意味があるのではなく、それを受け取る側の考え方次第だと気づいてもらう。**
+
+## エージェントチーム構成
 
 ```
-テーマ入力 → 企画 → 執筆 → 編集 → 校正 → 完成記事
-              │       │       │       │
-           Planner  Writer  Editor  Proofreader
+[PM: プロジェクトマネージャー]
+    │
+    ├── Phase 1: Researcher（リサーチャー）
+    │   世界中の占い手法を網羅的に調査
+    │
+    ├── Phase 2: Scientist（科学分析官）
+    │   科学的根拠・心理学的メカニズムの分析
+    │
+    ├── Phase 3: Writer（啓発ライター）
+    │   一般読者向けの啓発記事を執筆
+    │
+    ├── Phase 4: Fact Checker（ファクトチェッカー）
+    │   科学的正確性・公平性の最終検証
+    │
+    └── Phase 5: UX Planner（UX企画）
+        占い体験サイト/アプリの企画設計
 ```
 
-## エージェント構成
-
-| エージェント | 役割 | 担当 |
-|-------------|------|------|
-| **Planner** (企画) | テーマ分析・ターゲット設定・構成案作成 | Sonnet |
-| **Writer** (ライター) | 記事本文の執筆 | Opus |
-| **Editor** (編集者) | 論理構成・読みやすさ・正確性チェック | Sonnet |
-| **Proofreader** (校正者) | 誤字脱字・文法・表記ゆれチェック | Sonnet |
+| エージェント | 役割 | モデル |
+|-------------|------|--------|
+| **Researcher** | 世界の占い手法の網羅的調査（歴史・手法・文化背景） | Opus |
+| **Scientist** | 科学的検証・心理学的メカニズム分析（論文・実験・統計） | Opus |
+| **Writer** | 科学的分析を元にした啓発記事の執筆 | Opus |
+| **Fact Checker** | 科学的正確性・公平性・バランスの最終チェック | Sonnet |
+| **UX Planner** | 占い体験 → 科学的解説 → 気づきの体験設計 | Opus |
 
 ## セットアップ
 
 ```bash
-# 依存関係のインストール
 pip install claude-agent-sdk
-
-# APIキーの設定
 export ANTHROPIC_API_KEY="your-api-key"
 ```
 
 ## 使い方
 
-### チーム全体で記事制作
+### 全フェーズ一括実行
 
 ```bash
-# 基本
-python -m content_team.main "AIエージェントの未来"
+python -m content_team.main
+```
 
+### 個別フェーズの実行
+
+```bash
+# Phase 1: 世界の占い手法リサーチ
+python -m content_team.main --phase research
+
+# Phase 2: 科学的分析
+python -m content_team.main --phase analyze
+
+# Phase 3: 啓発記事の執筆
+python -m content_team.main --phase write
+
+# Phase 4: ファクトチェック
+python -m content_team.main --phase factcheck
+
+# Phase 5: 占い体験アプリ企画
+python -m content_team.main --phase plan_app
+```
+
+### オプション
+
+```bash
 # 出力先を指定
-python -m content_team.main "Python入門ガイド" --output ./articles
+python -m content_team.main --output ./results
 
-# 予算上限を設定
-python -m content_team.main "Rustの魅力" --budget 3.0
+# 予算上限を設定（USD）
+python -m content_team.main --budget 8.0
 ```
 
-### 個別エージェントの実行
+## 出力ファイル
 
-```bash
-# 企画だけ
-python -m content_team.main --step planner "AIエージェントの未来"
+| ファイル | 内容 |
+|---------|------|
+| `output/01_research.md` | 世界の占い手法カタログ |
+| `output/02_scientific_analysis.md` | 科学的分析レポート |
+| `output/03_article.md` | 啓発記事（ドラフト） |
+| `output/04_final_article.md` | ファクトチェック済み最終記事 |
+| `output/05_app_plan.md` | 占い体験アプリ企画書 |
 
-# 執筆だけ
-python -m content_team.main --step writer "企画の内容..."
+## 分析対象の占い手法
 
-# 編集だけ
-python -m content_team.main --step editor "記事の内容..."
+### 東アジア
+おみくじ、手相、四柱推命、九星気学、姓名判断、血液型占い、六曜、易経、風水、紫微斗数
 
-# 校正だけ
-python -m content_team.main --step proofreader "記事の内容..."
-```
+### 南アジア
+ジョーティッシュ（ヴェーダ占星術）、ナーディ占星術
 
-### Pythonから直接利用
+### ヨーロッパ
+西洋占星術（ホロスコープ）、タロット、ルーン、数秘術、水晶球
 
-```python
-import asyncio
-from content_team.team import run_content_team
+### 中東・アフリカ
+砂占い（ジオマンシー）、イファ占い、骨投げ占い
 
-result = asyncio.run(run_content_team(
-    topic="AIエージェントの未来",
-    output_dir="./output",
-    max_budget_usd=5.0,
-))
-print(f"記事が保存されました: {result}")
-```
+### アメリカ大陸
+マヤ暦、ネイティブアメリカンのビジョンクエスト
+
+### その他
+ダウジング、オーラリーディング、ペンデュラム
+
+## 科学的分析の観点
+
+- **バーナム効果**: 曖昧な記述を自分だけに当てはまると感じる
+- **確証バイアス**: 当たった記憶だけ残る
+- **自己成就予言**: 占いを信じて行動が変わる
+- **コールドリーディング**: 占い師の読み取り技術
+- **プラシーボ効果**: 信じること自体の心理的効果
+- **カウンセリング効果**: 話を聞いてもらえる安心感
 
 ## プロジェクト構成
 
 ```
 content_team/
 ├── __init__.py    # パッケージ初期化
-├── agents.py      # エージェント定義（4エージェント）
+├── agents.py      # 5エージェントの定義
 ├── team.py        # チームオーケストレーター
 └── main.py        # CLIエントリポイント
 ```
 
-## 制作フロー詳細
+## 方針
 
-1. **企画 (Planner)**: テーマを受け取り、ターゲット読者・構成案・キーワードを提案
-2. **執筆 (Writer)**: 企画をもとにMarkdown形式で記事本文を執筆
-3. **編集 (Editor)**: 論理構成・読みやすさ・情報の一貫性をチェックし改善
-4. **校正 (Proofreader)**: 誤字脱字・文法・表記ゆれを修正し最終版を出力
-
-## 技術スタック
-
-- **Claude Agent SDK** - エージェント制御
-- **Claude Opus** - 高品質な文章生成（ライター）
-- **Claude Sonnet** - 高速な分析・チェック（企画・編集・校正）
+- 占いを信じる人を攻撃しない
+- 科学的事実に基づいたバランスの取れた分析
+- 心理的効果（カウンセリング効果など）は正当に評価する
+- 本当に科学的根拠がある効果があれば、それも報告する
+- 読者自身が「なるほど」と気づける構成を重視

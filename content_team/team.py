@@ -1,6 +1,5 @@
-"""チームオーケストレーター - エージェントチーム全体の制御"""
+"""チームオーケストレーター - 占い調査・分析プロジェクトの制御"""
 
-import asyncio
 from pathlib import Path
 
 from claude_agent_sdk import ClaudeAgentOptions, AssistantMessage, ResultMessage, query
@@ -8,60 +7,84 @@ from claude_agent_sdk import ClaudeAgentOptions, AssistantMessage, ResultMessage
 from .agents import get_all_agents
 
 
-async def run_content_team(
-    topic: str,
+PHASE_DESCRIPTIONS = {
+    "research": "Phase 1: 世界の占い手法リサーチ",
+    "analyze": "Phase 2: 科学的分析",
+    "write": "Phase 3: 啓発記事の執筆",
+    "factcheck": "Phase 4: ファクトチェック",
+    "plan_app": "Phase 5: 占い体験アプリの企画",
+    "full": "全フェーズ一括実行",
+}
+
+
+async def run_full_pipeline(
     output_dir: str = "./output",
-    max_budget_usd: float = 5.0,
+    max_budget_usd: float = 10.0,
 ) -> str:
-    """コンテンツ制作チームを実行する
+    """全フェーズを通して実行する
 
     Args:
-        topic: 記事のテーマ・トピック
         output_dir: 出力先ディレクトリ
         max_budget_usd: 最大予算（USD）
 
     Returns:
-        完成した記事のファイルパス
+        出力ディレクトリのパス
     """
     output_path = Path(output_dir)
     output_path.mkdir(parents=True, exist_ok=True)
 
-    team_prompt = f"""あなたはコンテンツ制作チームのプロジェクトマネージャーです。
-以下のテーマで高品質な記事を制作してください。
+    team_prompt = f"""あなたは「占いの科学的検証プロジェクト」のプロジェクトマネージャーです。
+5つのエージェントチームを統括し、以下のフェーズを順番に実行してください。
 
-## テーマ
-{topic}
+## プロジェクトの目的
+世界中の占い手法を調査し、科学的根拠に基づいて分析し、
+人々が占いとの正しい付き合い方を理解できる啓発コンテンツを制作する。
+さらに、占いを実際に体験できるサイト/アプリの企画も行う。
 
-## 制作フロー
-以下の順番でエージェントチームに作業を指示してください：
+## 実行フロー
 
-### Step 1: 企画（planner エージェント）
-plannerエージェントを使って、テーマの分析・ターゲット読者の設定・記事構成案を作成してください。
+### Phase 1: リサーチ（researcher エージェント）
+researcherエージェントを使い、世界中の占い手法を網羅的に調査してください。
+東アジア・南アジア・中東/アフリカ・ヨーロッパ・アメリカ大陸の各地域を網羅すること。
+結果を `{output_path}/01_research.md` に保存してください。
 
-### Step 2: 執筆（writer エージェント）
-Step 1の企画結果を元に、writerエージェントを使って記事本文を執筆してください。
-企画の内容を明確にwriterに伝えてください。
+### Phase 2: 科学的分析（scientist エージェント）
+Phase 1のリサーチ結果を元に、scientistエージェントを使い、
+各占い手法の科学的検証と心理学的メカニズムの分析を行ってください。
+バーナム効果、確証バイアス、自己成就予言など関連する心理効果も分析すること。
+結果を `{output_path}/02_scientific_analysis.md` に保存してください。
 
-### Step 3: 編集（editor エージェント）
-Step 2の記事をeditorエージェントに渡して、論理構成・読みやすさ・情報の正確性をチェックし、改善してください。
+### Phase 3: 啓発記事の執筆（writer エージェント）
+Phase 1・2の結果を元に、writerエージェントを使い、
+一般読者向けの啓発記事を執筆してください。
+占いを信じる人を攻撃せず、科学的事実を元に読者自身が気づきを得られる構成にすること。
+結果を `{output_path}/03_article.md` に保存してください。
 
-### Step 4: 校正（proofreader エージェント）
-Step 3の編集済み記事をproofreaderエージェントに渡して、最終的な品質チェックを行ってください。
+### Phase 4: ファクトチェック（fact_checker エージェント）
+Phase 3の記事をfact_checkerエージェントに渡し、
+科学的正確性・公平性・論理的一貫性をチェックしてください。
+修正済みの最終版記事を `{output_path}/04_final_article.md` に保存してください。
 
-## 最終出力
-校正が完了したら、最終版の記事を `{output_path}/article.md` に保存してください。
-Writeツールを使ってファイルに書き出してください。
+### Phase 5: アプリ企画（ux_planner エージェント）
+ux_plannerエージェントを使い、占い体験サイト/アプリの企画設計を行ってください。
+ユーザーが占いを体験した後に科学的解説を読み、
+「占いの結果ではなく自分の考え方が大事」と気づける体験設計にすること。
+結果を `{output_path}/05_app_plan.md` に保存してください。
 
-各ステップの結果を簡潔に報告しながら進めてください。
+## 重要な方針
+- 各フェーズの結果は前のフェーズの成果物を踏まえる
+- 占いの全否定ではなく、科学的事実に基づいたバランスの取れた分析
+- 心理的効果（カウンセリング効果など）は正当に評価する
+- 本当に科学的根拠がある効果があれば、それも報告する
+
+各フェーズの進捗を簡潔に報告しながら進めてください。
 """
 
     agents = get_all_agents()
-    result_text = ""
-    total_cost = 0.0
 
     print(f"\n{'='*60}")
-    print(f"  コンテンツ制作チーム 起動")
-    print(f"  テーマ: {topic}")
+    print("  占いの科学的検証プロジェクト 起動")
+    print(f"  出力先: {output_path}/")
     print(f"{'='*60}\n")
 
     async for message in query(
@@ -69,7 +92,7 @@ Writeツールを使ってファイルに書き出してください。
         options=ClaudeAgentOptions(
             allowed_tools=["Read", "Write", "Edit", "Grep", "Glob", "Agent"],
             agents=agents,
-            max_turns=50,
+            max_turns=80,
             max_budget_usd=max_budget_usd,
             effort="high",
         ),
@@ -83,51 +106,88 @@ Writeツールを使ってファイルに書き出してください。
 
         elif isinstance(message, ResultMessage):
             if message.subtype == "success":
-                result_text = getattr(message, "result", "")
                 total_cost = getattr(message, "total_cost_usd", 0.0)
                 num_turns = getattr(message, "num_turns", 0)
 
                 print(f"\n{'='*60}")
-                print(f"  制作完了!")
+                print("  プロジェクト完了!")
                 print(f"  ターン数: {num_turns}")
                 print(f"  コスト: ${total_cost:.4f}")
-                print(f"  出力先: {output_path}/article.md")
+                print(f"  出力ファイル:")
+                print(f"    - {output_path}/01_research.md")
+                print(f"    - {output_path}/02_scientific_analysis.md")
+                print(f"    - {output_path}/03_article.md")
+                print(f"    - {output_path}/04_final_article.md")
+                print(f"    - {output_path}/05_app_plan.md")
                 print(f"{'='*60}\n")
             else:
                 print(f"\n[エラー] {message.subtype}")
 
-    return str(output_path / "article.md")
+    return str(output_path)
 
 
-async def run_single_step(
-    step: str,
-    content: str,
-    max_budget_usd: float = 2.0,
+async def run_single_phase(
+    phase: str,
+    input_text: str = "",
+    output_dir: str = "./output",
+    max_budget_usd: float = 3.0,
 ) -> str:
-    """チームの個別ステップを単体実行する（デバッグ用）
+    """個別フェーズを単体実行する
 
     Args:
-        step: "planner", "writer", "editor", "proofreader"
-        content: 入力テキスト
+        phase: "research", "analyze", "write", "factcheck", "plan_app"
+        input_text: 前フェーズの出力（必要に応じて）
+        output_dir: 出力先ディレクトリ
         max_budget_usd: 最大予算
 
     Returns:
         エージェントの出力テキスト
     """
     agents = get_all_agents()
+    output_path = Path(output_dir)
+    output_path.mkdir(parents=True, exist_ok=True)
 
-    if step not in agents:
-        raise ValueError(f"不明なステップ: {step} (選択肢: {list(agents.keys())})")
+    phase_to_agent = {
+        "research": "researcher",
+        "analyze": "scientist",
+        "write": "writer",
+        "factcheck": "fact_checker",
+        "plan_app": "ux_planner",
+    }
 
-    prompt = f"{step}エージェントを使って以下の内容を処理してください:\n\n{content}"
+    phase_to_file = {
+        "research": "01_research.md",
+        "analyze": "02_scientific_analysis.md",
+        "write": "03_article.md",
+        "factcheck": "04_final_article.md",
+        "plan_app": "05_app_plan.md",
+    }
+
+    if phase not in phase_to_agent:
+        raise ValueError(
+            f"不明なフェーズ: {phase} (選択肢: {list(phase_to_agent.keys())})"
+        )
+
+    agent_name = phase_to_agent[phase]
+    output_file = output_path / phase_to_file[phase]
+
+    context = f"\n\n以下は前のフェーズの結果です:\n{input_text}" if input_text else ""
+    prompt = (
+        f"{agent_name}エージェントを使って作業を実行してください。"
+        f"結果は `{output_file}` に保存してください。{context}"
+    )
+
+    description = PHASE_DESCRIPTIONS.get(phase, phase)
+    print(f"\n[{description}] 開始...")
+
     result = ""
 
     async for message in query(
         prompt=prompt,
         options=ClaudeAgentOptions(
             allowed_tools=["Read", "Write", "Edit", "Grep", "Glob", "Agent"],
-            agents={step: agents[step]},
-            max_turns=20,
+            agents={agent_name: agents[agent_name]},
+            max_turns=30,
             max_budget_usd=max_budget_usd,
         ),
     ):
@@ -140,5 +200,6 @@ async def run_single_step(
         elif isinstance(message, ResultMessage):
             if message.subtype == "success":
                 result = getattr(message, "result", result)
+                print(f"\n[{description}] 完了 → {output_file}")
 
     return result
